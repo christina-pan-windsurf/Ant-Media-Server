@@ -1286,6 +1286,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	private void startCameraEmulator() {
 		stopCameraEmulator();
 
+		java.io.File onvifScript = new java.io.File("/usr/local/onvif/runme.sh");
+		if (!onvifScript.exists()) {
+			System.out.println("ONVIF simulator script not found at /usr/local/onvif/runme.sh - skipping camera emulator start");
+			return;
+		}
+
 		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
 		Process p = null;
 		try {
