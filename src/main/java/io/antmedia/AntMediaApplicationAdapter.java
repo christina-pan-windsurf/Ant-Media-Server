@@ -303,6 +303,19 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	private Map<String, RTMPClusterStreamFetcher> rtmpClusterStreamFetcherMap = new ConcurrentHashMap<>();
 
 	@Override
+	/**
+	 * Application startup method called when the Red5 application initializes.
+	 * This method performs comprehensive application setup including:
+	 * - Initializing data stores and database connections
+	 * - Setting up stream fetcher managers and schedulers
+	 * - Configuring webhook and cluster communication
+	 * - Loading application settings and preferences
+	 * - Starting background services and monitoring tasks
+	 * - Registering shutdown hooks and cleanup procedures
+	 * 
+	 * @param app The Red5 application scope
+	 * @return true if application started successfully, false otherwise
+	 */
 	public boolean appStart(IScope app) {
 		setScope(app);
 		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
@@ -1025,6 +1038,19 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	@Override
 	@Deprecated
+	/**
+	 * Initiates publishing for a stream with the specified parameters.
+	 * This method handles the stream publishing lifecycle including:
+	 * - Validating stream parameters and permissions
+	 * - Creating or updating broadcast records
+	 * - Setting up mux adaptors for output formats
+	 * - Configuring stream endpoints and settings
+	 * - Triggering webhook notifications for stream events
+	 * 
+	 * @param streamId Unique identifier for the stream
+	 * @param absoluteStartTimeMs Absolute start time in milliseconds
+	 * @param publishType Type of publishing (RTMP, WebRTC, etc.)
+	 */
 	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
 		startPublish(streamId, absoluteStartTimeMs, publishType, null, null);
 	}
@@ -2538,8 +2564,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			return result;
 		}
 
-		//synch again because of string to list mapping- TODO: There is a better way for string to list mapping
-		//in properties files
+		// TODO: Implement better string-to-list mapping mechanism for properties files
 		newSettings.setEncoderSettings(encoderSettingsList);
 
 		if (newSettings.getHlsListSize() == null || Integer.valueOf(newSettings.getHlsListSize()) < 5) {
@@ -2557,7 +2582,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		updateAppSettingsBean(appSettings, newSettings, notifyCluster);
 
 		if (notifyCluster && clusterNotifier != null) {
-			//we should set to be deleted because app deletion fully depends on the cluster synch TODO remove the following line because toBeDeleted is deprecated
+			// Set deletion flag for cluster synchronization compatibility
+		// TODO: Remove this line when toBeDeleted field is fully deprecated
 			appSettings.setToBeDeleted(newSettings.isToBeDeleted());
 
 			appSettings.setAppStatus(newSettings.getAppStatus());

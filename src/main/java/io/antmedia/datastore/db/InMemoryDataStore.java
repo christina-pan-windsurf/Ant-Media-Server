@@ -241,6 +241,16 @@ public class InMemoryDataStore extends DataStore {
 
 
 
+	/**
+	 * Retrieves a list of external streams (IP cameras and stream sources) that are
+	 * not currently broadcasting or preparing. This method is used by the stream
+	 * fetcher manager to identify streams that need to be started.
+	 * 
+	 * The method also updates the status of found streams to "preparing" to prevent
+	 * multiple concurrent start attempts.
+	 * 
+	 * @return List of Broadcast objects representing external streams ready to start
+	 */
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
 		Collection<Broadcast> values = broadcastMap.values();
@@ -359,6 +369,17 @@ public class InMemoryDataStore extends DataStore {
 		return vodMap.size();
 	}
 
+	/**
+	 * Scans a user directory for video files and imports them as VoD entries.
+	 * This method:
+	 * - Removes existing user VoD entries from the database
+	 * - Scans the specified directory for supported video files (mp4, flv, mkv)
+	 * - Creates new VoD entries for each discovered file
+	 * - Sets appropriate metadata including file paths and creation dates
+	 * 
+	 * @param userfile The directory to scan for video files
+	 * @return The number of video files successfully imported as VoD entries
+	 */
 	@Override
 	public int fetchUserVodList(File userfile) {
 
@@ -367,9 +388,6 @@ public class InMemoryDataStore extends DataStore {
 		}
 
 
-		/*
-		 * Delete all user vod in db
-		 */
 		int numberOfSavedFiles = 0;
 		Collection<VoD> vodCollection = vodMap.values();
 

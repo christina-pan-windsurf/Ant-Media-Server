@@ -69,7 +69,17 @@ public abstract class DataStore {
 
 	public abstract String save(Broadcast broadcast);
 
-	//TODO: In rare scenarios, streamId can not be unique 
+	/**
+	 * Saves a broadcast to the data store with proper validation and ID generation.
+	 * This method handles broadcast persistence including stream ID generation,
+	 * RTMP URL construction, and status initialization.
+	 * 
+	 * Note: In rare scenarios, generated stream IDs may not be unique across
+	 * distributed deployments. Consider implementing distributed ID generation.
+	 * 
+	 * @param broadcast The broadcast object to save
+	 * @return The saved broadcast with generated ID and URLs
+	 */
 	protected Broadcast saveBroadcast(Broadcast broadcast) {
 		String streamId = null;
 		try {
