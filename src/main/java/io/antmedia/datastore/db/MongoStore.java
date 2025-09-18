@@ -127,7 +127,6 @@ public class MongoStore extends DataStore {
 		mongoClient = MongoClients.create(uri);
 
 
-		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = Morphia.createDatastore(mongoClient, dbName);
 		vodDatastore = Morphia.createDatastore(mongoClient, dbName+"VoD");
 		tokenDatastore = Morphia.createDatastore(mongoClient, dbName + "_token");
@@ -143,7 +142,6 @@ public class MongoStore extends DataStore {
 		datastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
 
 
-		//TODO: only map related class not all of them
 		tokenDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		subscriberDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		vodDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
@@ -645,6 +643,25 @@ public class MongoStore extends DataStore {
 	}
 
 
+	/**
+	 * Retrieves a paginated and filtered list of broadcasts from MongoDB.
+	 * This method supports:
+	 * - Pagination through offset and size parameters
+	 * - Filtering by broadcast type (live stream, IP camera, etc.)
+	 * - Sorting by various fields in ascending or descending order
+	 * - Text search across stream ID and name fields using regex or full-text search
+	 * 
+	 * The method automatically detects if the search term is a valid regex pattern
+	 * and applies appropriate search strategy accordingly.
+	 * 
+	 * @param offset Starting position for pagination (0-based)
+	 * @param size Maximum number of results to return
+	 * @param type Filter by broadcast type (optional)
+	 * @param sortBy Field name to sort by (optional)
+	 * @param orderBy Sort direction: "asc" or "desc" (optional)
+	 * @param search Text to search for in stream ID and name fields (optional)
+	 * @return List of broadcasts matching the specified criteria
+	 */
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		long startTime = System.nanoTime();
@@ -702,6 +719,18 @@ public class MongoStore extends DataStore {
 	}
 
 
+	/**
+	 * Retrieves external streams (IP cameras and stream sources) that are not currently
+	 * broadcasting or preparing. This method uses MongoDB queries to efficiently find
+	 * and atomically update stream statuses to prevent race conditions.
+	 * 
+	 * The method performs:
+	 * - Query for IP_CAMERA or STREAM_SOURCE types not in broadcasting/preparing states
+	 * - Atomic update of found streams to "preparing" status
+	 * - Logging of any discrepancies between query results and update counts
+	 * 
+	 * @return List of external streams ready to be started by the stream fetcher manager
+	 */
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
 		long startTime = System.nanoTime();
@@ -735,10 +764,25 @@ public class MongoStore extends DataStore {
 		return streamList;
 	}
 
+	/**
+	 * Closes the MongoDB connection and optionally deletes all databases.
+	 * This method performs cleanup operations including:
+	 * - Acquiring all necessary locks to ensure thread safety
+	 * - Marking the datastore as unavailable
+	 * - Dropping all databases if deleteDB is true
+	 * - Closing the MongoDB client connection
+	 * 
+	 * The method uses nested synchronization blocks to prevent deadlocks
+	 * and ensure proper resource cleanup.
+	 * 
+	 * @param deleteDB If true, all databases will be dropped before closing
+	 */
 	@Override
 	public void close(boolean deleteDB) {
 		long startTime = System.nanoTime();
 
+		// Acquire all locks in consistent order to prevent deadlocks
+		// This ensures no other operations can interfere with the shutdown process
 		synchronized(broadcastLock) {
 			synchronized(vodLock) {
 				synchronized(tokenLock) {
@@ -1478,7 +1522,6 @@ public class MongoStore extends DataStore {
 		long startTime = System.nanoTime();
 
 		synchronized(broadcastLock) {
-			//TODO: Why do we run find(StreamInfo.class)
 			datastore.find(StreamInfo.class);
 			datastore.save(streamInfo);
 		}

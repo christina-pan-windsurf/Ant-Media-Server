@@ -36,9 +36,18 @@ import io.vertx.core.Vertx;
 
 
 /**
- * Organizes and checks stream fetcher and restarts them if it is required
+ * Manages and orchestrates multiple StreamFetcher instances for external stream sources.
+ * This class is responsible for:
+ * - Starting and stopping stream fetchers for IP cameras and stream sources
+ * - Monitoring stream health and automatically restarting failed streams
+ * - Managing playlist playback for sequential content
+ * - Scheduling periodic health checks and maintenance tasks
+ * - Coordinating with the application lifecycle and shutdown procedures
+ * 
+ * The manager maintains a registry of active stream fetchers and provides
+ * centralized control over their lifecycle and error recovery.
+ * 
  * @author davut
- *
  */
 public class StreamFetcherManager {
 

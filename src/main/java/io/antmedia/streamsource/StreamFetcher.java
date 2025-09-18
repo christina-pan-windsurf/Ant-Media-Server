@@ -189,6 +189,18 @@ public class StreamFetcher {
 		}
 	}
 
+	/**
+	 * WorkerThread handles the core stream fetching and processing operations.
+	 * This thread is responsible for:
+	 * - Opening and maintaining input stream connections
+	 * - Reading packets from the input stream
+	 * - Managing packet buffering and timing synchronization
+	 * - Handling stream lifecycle events (start, stop, restart)
+	 * - Processing both live streams and VOD content
+	 * 
+	 * Thread safety: This class uses synchronized blocks and atomic variables
+	 * to ensure thread-safe operations during concurrent access.
+	 */
 	public class WorkerThread extends Thread {
 
 		private static final int PACKET_WRITER_PERIOD_IN_MS = 10;
@@ -231,6 +243,18 @@ public class StreamFetcher {
 		}
 
 
+		/**
+		 * Prepares the input format context for stream processing.
+		 * This method handles:
+		 * - Setting up connection timeouts and transport parameters
+		 * - Configuring RTSP-specific options (transport type, timeout)
+		 * - Opening the input stream with appropriate dictionary options
+		 * - Finding stream information and initializing DTS arrays
+		 * - Handling seek operations if required
+		 * 
+		 * @param inputFormatContext The FFmpeg format context to prepare
+		 * @return Result object indicating success/failure with error message
+		 */
 		public Result prepareInput(AVFormatContext inputFormatContext) {
 			int timeout = appSettings.getRtspTimeoutDurationMs(); 
 			streamUrl = getStreamUrl();
@@ -309,6 +333,18 @@ public class StreamFetcher {
 
 		}
 
+		/**
+		 * Main execution loop for the stream fetcher worker thread.
+		 * This method orchestrates the entire stream processing lifecycle:
+		 * - Validates broadcast existence and status
+		 * - Updates broadcast status to preparing
+		 * - Initializes input format context and packet structures
+		 * - Enters the main packet reading loop
+		 * - Handles exceptions and cleanup operations
+		 * 
+		 * The thread continues processing until a stop request is received
+		 * or an unrecoverable error occurs.
+		 */
 		@Override
 		public void run() {
 
@@ -343,11 +379,6 @@ public class StreamFetcher {
 					}
 
 					boolean readTheNextFrame = true;
-					//In some odd cases stopRequest is received immediately and status of the stream changed to finished
-					//after that readMore -> packetRead method calls "getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL);"
-					//this method runs async, it means that its status changed to broadcasting and stays there
-					//I figure out this problem by analyzing a testSkipPlayList test that is failing time to time
-					//Mar 31, 2024 - @mekya
 					while (!stopRequestReceived && readTheNextFrame) {
 						try {
 							//stay in the loop if exception occurs
@@ -512,6 +543,20 @@ public class StreamFetcher {
 			return false;
 		}
 
+		/**
+		 * Processes a packet read from the input stream.
+		 * This method handles:
+		 * - Stream publishing initialization on first packet
+		 * - Buffer queue setup for time-delayed streaming
+		 * - DTS/PTS timestamp validation and correction
+		 * - VOD playback timing synchronization
+		 * - Packet buffering or direct writing based on configuration
+		 * 
+		 * The method includes extensive timestamp handling logic to ensure
+		 * proper stream synchronization and playback timing.
+		 * 
+		 * @param pkt The AVPacket containing media data to process
+		 */
 		public void packetRead(AVPacket pkt)
 		{
 			if(!streamPublished) {
@@ -597,10 +642,7 @@ public class StreamFetcher {
 			 ******************************************************/
 			if (bufferTime > 0)
 			{
-				/*
-				 * If there is a bufferTime in the server.
-				 * Generally we don't use this feature most of the time
-				 */
+				// This feature is rarely used but provides packet buffering
 				AVPacket packet = getAVPacket();
 
 				av_packet_ref(packet, pkt);
@@ -611,7 +653,6 @@ public class StreamFetcher {
 			else {
 
 				if(AntMediaApplicationAdapter.VOD.equals(streamType)) {
-
 
 					int streamIndex = pkt.stream_index();
 					AVRational timeBase = inputFormatContext.streams(streamIndex).time_base();
@@ -628,6 +669,7 @@ public class StreamFetcher {
 
 					long latestTime = System.currentTimeMillis();
 
+					// Convert packet timestamp to milliseconds
 					long pktTimeMs = av_rescale_q(pkt.dts(), timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
 
 					long durationInMs = latestTime - firstPacketTime;
@@ -874,7 +916,14 @@ public class StreamFetcher {
 		}
 
 
-		//TODO: Code duplication with MuxAdaptor.writeBufferedPacket. It should be refactored.
+		/**
+		 * Writes buffered packets to the output stream with proper timing.
+		 * This method processes packets from the buffer queue and ensures
+		 * they are written at the correct time intervals.
+		 * 
+		 * Note: This method has code duplication with MuxAdaptor.writeBufferedPacket
+		 * and should be refactored to eliminate redundancy.
+		 */
 		public void writeBufferedPacket()
 		{
 			synchronized (this) {
