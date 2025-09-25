@@ -1,7 +1,7 @@
 dist: jammy
 language: java
 jdk:
-  - openjdk17
+  - openjdk21
 
 
 git:
@@ -208,4 +208,4 @@ deploy:
     on:
       #deploy to maven if it is a release tagged
       tags: true
-      condition: $TRAVIS_TAG =~ ^ams-v 
+      condition: $TRAVIS_TAG =~ ^ams-v  
